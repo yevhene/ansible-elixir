@@ -1,0 +1,65 @@
+---
+- hosts: all
+  become: true
+
+  vars:
+    postgresql_version: 12
+    nodejs_version: 14
+
+  handlers:
+    - name: restart nginx
+      service: name=nginx state=restarted
+
+  tasks:
+    - name: APT update
+      apt: update_cache=yes upgrade=yes
+
+    - name: Install essential packages
+      apt: name=vim
+
+    - name: Install postgres
+      apt: name="postgresql-{{ postgresql_version }}"
+
+    - name: Add Node repo key
+      apt_key:
+        url: https://deb.nodesource.com/gpgkey/nodesource.gpg.key
+        id: 1655A0AB68576280
+        state: present
+
+    - name: Install the nodejs LTS repos
+      apt_repository:
+        repo: "deb https://deb.nodesource.com/node_{{ nodejs_version }}.x {{ ansible_distribution_release }} main"
+        state: present
+        update_cache: yes
+
+    - name: Install the nodejs
+      apt:
+        name: nodejs
+        state: present
+
+    - name: Add Erlang repo key
+      ansible.builtin.apt_key:
+        url: https://packages.erlang-solutions.com/ubuntu/erlang_solutions.asc
+        id: D208507CA14F4FCA
+        state: present
+
+    - name: Add Erlang repo
+      ansible.builtin.apt_repository:
+        repo: deb https://packages.erlang-solutions.com/ubuntu {{ ansible_distribution_release }} contrib
+        state: present
+        update_cache: yes
+
+    - name: Install Erlang
+      apt: name=erlang
+
+    - name: Install Elixir
+      apt: name=elixir
+
+    - name: Install NGinx
+      apt: name=nginx
+
+    - name: Disable default server
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      notify: restart nginx
